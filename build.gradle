@@ -28,19 +28,19 @@ def gitRevision = { ->
 
 project.ext.gitRevision = gitRevision()
 
-group = 'cd.go.contrib.task.skeleton'
-version = '0.1-SNAPSHOT'
+group = 'cd.go.contrib.fetch-artifact-with-proxy'
+version = 'SNAPSHOT'
 
 // these values that go into plugin.xml
 // TODO: change these
 project.ext.pluginDesc = [
-  id         : 'cd.go.contrib.task.skeleton',
+  id         : 'cd.go.contrib.fetch-artifact-with-proxy',
   version    : project.version,
-  goCdVersion: '16.12.0',
-  name       : 'Example Task Plugin',
-  description: 'Some longer description of your plugin goes here',
-  vendorName : 'Acme Corp',
-  vendorUrl  : 'https://github.com/user/repository'
+  goCdVersion: '17.1.0',
+  name       : 'fetch-artifact-with-proxy',
+  description: 'Since communication between go-agent and go-server does not support proxy, this plugin can be useful to solve that limitation in the fetch artifact stage and leverage proxy caching',
+  vendorName : 'Mikhail Advani',
+  vendorUrl  : 'https://github.com/mikhailadvani'
 ]
 
 // Force 1.7 compatibility to ensure that it works with older JVMs
@@ -128,4 +128,10 @@ jar {
   from(sourceSets.main.java) {
     into "/"
   }
+}
+
+task pub1(dependsOn: build, type: Copy){
+  from('build/libs/')
+  into('/var/lib/go-server/plugins/external/')
+  include('*.jar')
 }

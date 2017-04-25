@@ -32,12 +32,12 @@ import java.util.Arrays;
 @Extension
 public class TaskPlugin implements GoPlugin {
 
-    public static final String URL_PROPERTY = "Url";
-    public static final String ADDITIONAL_OPTIONS = "AdditionalOptions";
-    public static final String SECURE_CONNECTION = "yes";
-    public static final String SECURE_CONNECTION_PROPERTY = "SecureConnection";
-    public static final String REQUEST_TYPE = "-G";
-    public static final String REQUEST_PROPERTY = "RequestType";
+    public static final String PIPELINE_NAME = "Pipeline";
+    public static final String STAGE_NAME = "Stage";
+    public static final String JOB_NAME = "Job";
+    public static final String SOURCE = "Source";
+    public static final String SOURCE_IS_A_FILE = "SourceIsAFile";
+    public static final String DESTINATION = "Destination";
     public static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
     public static Logger LOGGER = Logger.getLoggerFor(TaskPlugin.class);

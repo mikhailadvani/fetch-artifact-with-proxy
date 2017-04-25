@@ -27,31 +27,41 @@ public class GetConfigRequest {
     public GoPluginApiResponse execute() {
         HashMap<String, Object> config = new HashMap<>();
 
-        HashMap<String, Object> url = new HashMap<>();
-        url.put("display-order", "0");
-        url.put("display-name", "Url");
-        url.put("required", true);
-        config.put(TaskPlugin.URL_PROPERTY, url);
+        HashMap<String, Object> pipeline = new HashMap<>();
+        pipeline.put("display-order", "0");
+        pipeline.put("display-name", "Pipeline");
+        pipeline.put("required", false);
+        config.put(TaskPlugin.PIPELINE_NAME, pipeline);
 
-        HashMap<String, Object> secure = new HashMap<>();
-        secure.put("default-value", TaskPlugin.SECURE_CONNECTION);
-        secure.put("display-order", "1");
-        secure.put("display-name", "Secure Connection");
-        secure.put("required", false);
-        config.put(TaskPlugin.SECURE_CONNECTION_PROPERTY, secure);
+        HashMap<String, Object> stage = new HashMap<>();
+        stage.put("display-order", "1");
+        stage.put("display-name", "Stage");
+        stage.put("required", true);
+        config.put(TaskPlugin.STAGE_NAME, stage);
 
-        HashMap<String, Object> requestType = new HashMap<>();
-        requestType.put("default-value", TaskPlugin.REQUEST_TYPE);
-        requestType.put("display-order", "2");
-        requestType.put("display-name", "Request Type");
-        requestType.put("required", false);
-        config.put(TaskPlugin.REQUEST_PROPERTY, requestType);
+        HashMap<String, Object> job = new HashMap<>();
+        job.put("display-order", "2");
+        job.put("display-name", "Job");
+        job.put("required", true);
+        config.put(TaskPlugin.JOB_NAME, job);
 
-        HashMap<String, Object> additionalOptions = new HashMap<>();
-        additionalOptions.put("display-order", "3");
-        additionalOptions.put("display-name", "Additional Options");
-        additionalOptions.put("required", false);
-        config.put(TaskPlugin.ADDITIONAL_OPTIONS, additionalOptions);
+        HashMap<String, Object> source = new HashMap<>();
+        source.put("display-order", "3");
+        source.put("display-name", "Source");
+        source.put("required", true);
+        config.put(TaskPlugin.SOURCE, source);
+
+        HashMap<String, Object> sourceIsAFile = new HashMap<>();
+        sourceIsAFile.put("display-order", "4");
+        sourceIsAFile.put("display-name", "SourceIsAFile");
+        sourceIsAFile.put("required", true);
+        config.put(TaskPlugin.SOURCE_IS_A_FILE, sourceIsAFile);
+
+        HashMap<String, Object> destination = new HashMap<>();
+        destination.put("display-order", "5");
+        destination.put("display-name", "Destination");
+        destination.put("required", false);
+        config.put(TaskPlugin.DESTINATION, destination);
 
         return DefaultGoPluginApiResponse.success(TaskPlugin.GSON.toJson(config));
     }

@@ -20,35 +20,51 @@ import java.util.Map;
 
 // TODO: edit this to map to the fields in your task configuration
 public class TaskConfig {
-    private final String requestType;
-    private final String secureConnection;
-    private final String additionalOptions;
-    private final String url;
+    private final String pipelineName;
+    private final String stageName;
+    private final String jobName;
+    private final String source;
+    private final Boolean sourceIsAFile;
+    private final String destination;
 
     public TaskConfig(Map config) {
-        requestType = getValue(config, TaskPlugin.REQUEST_PROPERTY);
-        secureConnection = getValue(config, TaskPlugin.SECURE_CONNECTION_PROPERTY);
-        additionalOptions = getValue(config, TaskPlugin.ADDITIONAL_OPTIONS);
-        url = getValue(config, TaskPlugin.URL_PROPERTY);
+        pipelineName = getValue(config, TaskPlugin.PIPELINE_NAME);
+        stageName = getValue(config, TaskPlugin.STAGE_NAME);
+        jobName = getValue(config, TaskPlugin.JOB_NAME);
+        source = getValue(config, TaskPlugin.SOURCE);
+        sourceIsAFile = getBoolean(config, TaskPlugin.SOURCE_IS_A_FILE);
+        destination = getValue(config, TaskPlugin.DESTINATION);
     }
 
     private String getValue(Map config, String property) {
         return (String) ((Map) config.get(property)).get("value");
     }
 
-    public String getRequestType() {
-        return requestType;
+    private Boolean getBoolean(Map config, String property) {
+        return (Boolean) ((Map) config.get(property)).get("value");
     }
 
-    public String getSecureConnection() {
-        return secureConnection;
+    public String getPipelineName() {
+        return pipelineName;
     }
 
-    public String getAdditionalOptions() {
-        return additionalOptions;
+    public String getStageName() {
+        return stageName;
     }
 
-    public String getUrl() {
-        return url;
+    public String getJobName() {
+        return jobName;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public Boolean getSourceIsAFile() {
+        return sourceIsAFile;
+    }
+
+    public String getDestination() {
+        return destination;
     }
 }

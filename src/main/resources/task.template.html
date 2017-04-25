@@ -15,33 +15,28 @@
   -->
 
 <div class="form_item_block">
-  <label>URL:<span class="asterisk">*</span></label>
-  <input type="url" ng-model="Url" ng-required="true"/>
-  <span class="form_error" ng-show="GOINPUTNAME[Url].$error.url">Incorrect url format.</span>
-  <span class="form_error" ng-show="GOINPUTNAME[Url].$error.server">{{ GOINPUTNAME[Url].$error.server }}</span>
+  <label>Pipeline</label>
+  <input type="text" ng-model="Pipeline" ng-required="false"/>
+</div>
+<div class="form_item_block">
+  <label>Stage<span class="asterisk">*</span></label>
+  <input type="text" ng-model="Stage" ng-required="true"/>
+</div>
+<div class="form_item_block">
+  <label>Job<span class="asterisk">*</span></label>
+  <input type="text" ng-model="Job" ng-required="true"/>
+</div>
+<div class="form_item_block">
+  <label>Source<span class="asterisk">*</span></label>
+  <input type="text" ng-model="Source" ng-required="true"/>
+</div>
+
+<div class="checkbox_row">
+  <input id="SourceIsAFile" type="checkbox" ng-model="SourceIsAFile" value="no">
+  <label for="SourceIsAFile">Source is a file(Not a directory)</label>
 </div>
 
 <div class="form_item_block">
-  <label>Secure Connection:</label>
-  <div class="checkbox_row">
-    <input id="secureConnectionYes" type="radio" ng-model="SecureConnection" value="yes">
-    <label for="secureConnectionYes">Yes</label>
-    <input id="secureConnectionNo" type="radio" ng-model="SecureConnection" value="no">
-    <label for="secureConnectionNo">No</label>
-  </div>
-</div>
-
-<div class="form_item_block">
-  <label>Request Type:</label>
-  <select ng-model="RequestType">
-    <option value="-G">GET</option>
-    <option value="-d">POST</option>
-  </select>
-</div>
-
-<div class="form_item_block">
-  <label>Additional Options</label>
-  <input type="text" ng-model="AdditionalOptions">
-  </input>
-  <span class="form_error" ng-show="GOINPUTNAME[AdditionalOptions].$error.server">{{ GOINPUTNAME[AdditionalOptions].$error.server }}</span>
+  <label>Destination</label>
+  <input type="text" ng-model="Destination" ng-required="false"/>
 </div>

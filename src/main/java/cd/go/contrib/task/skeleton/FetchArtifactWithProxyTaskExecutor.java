@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 // TODO: execute your task and setup stdout/stderr to pipe the streams to GoCD
-public class CurlTaskExecutor {
+public class FetchArtifactWithProxyTaskExecutor {
 
     public static final String CURLED_FILE = "index.txt";
 
@@ -31,7 +31,7 @@ public class CurlTaskExecutor {
         try {
             return runCommand(context, taskConfig, console);
         } catch (Exception e) {
-            return new Result(false, "Failed to download file from URL: " + taskConfig.getUrl(), e);
+            return new Result(false, "Failed to download file from URL: " + taskConfig.getPipelineName(), e);
         }
     }
 
@@ -59,20 +59,20 @@ public class CurlTaskExecutor {
         String destinationFilePath = taskContext.getWorkingDir() + "/" + CURLED_FILE;
 
         List<String> command = new ArrayList<String>();
-        command.add("curl");
-        command.add(taskTaskConfig.getRequestType());
-        if (taskTaskConfig.getSecureConnection().equals("no")) {
-            command.add("--insecure");
-        }
-        if (taskTaskConfig.getAdditionalOptions() != null && !taskTaskConfig.getAdditionalOptions().trim().isEmpty()) {
-            String parts[] = taskTaskConfig.getAdditionalOptions().split("\\s+");
-            for (String part : parts) {
-                command.add(part);
-            }
-        }
+        command.add("Fetch Artifact with Proxy");
+//        command.add(taskTaskConfig.getRequestType());
+//        if (taskTaskConfig.getSecureConnection().equals("no")) {
+//            command.add("--insecure");
+//        }
+//        if (taskTaskConfig.getAdditionalOptions() != null && !taskTaskConfig.getAdditionalOptions().trim().isEmpty()) {
+//            String parts[] = taskTaskConfig.getAdditionalOptions().split("\\s+");
+//            for (String part : parts) {
+//                command.add(part);
+//            }
+//        }
         command.add("-o");
         command.add(destinationFilePath);
-        command.add(taskTaskConfig.getUrl());
+        command.add(taskTaskConfig.getPipelineName());
 
         return new ProcessBuilder(command);
     }

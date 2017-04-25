@@ -27,7 +27,7 @@ import java.util.Map;
 // TODO: add code here to execute your task
 public class ExecuteRequest {
     public GoPluginApiResponse execute(GoPluginApiRequest request) {
-        CurlTaskExecutor executor = new CurlTaskExecutor();
+        FetchArtifactWithProxyTaskExecutor executor = new FetchArtifactWithProxyTaskExecutor();
         Map executionRequest = (Map) new GsonBuilder().create().fromJson(request.requestBody(), Object.class);
         Map config = (Map) executionRequest.get("config");
         Map context = (Map) executionRequest.get("context");
