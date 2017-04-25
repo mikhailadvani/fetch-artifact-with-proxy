@@ -24,7 +24,7 @@ public class TaskConfig {
     private final String stageName;
     private final String jobName;
     private final String source;
-    private final Boolean sourceIsAFile;
+    private final String sourceIsAFile;
     private final String destination;
 
     public TaskConfig(Map config) {
@@ -32,16 +32,12 @@ public class TaskConfig {
         stageName = getValue(config, TaskPlugin.STAGE_NAME);
         jobName = getValue(config, TaskPlugin.JOB_NAME);
         source = getValue(config, TaskPlugin.SOURCE);
-        sourceIsAFile = getBoolean(config, TaskPlugin.SOURCE_IS_A_FILE);
+        sourceIsAFile = getValue(config, TaskPlugin.SOURCE_IS_A_FILE);
         destination = getValue(config, TaskPlugin.DESTINATION);
     }
 
     private String getValue(Map config, String property) {
         return (String) ((Map) config.get(property)).get("value");
-    }
-
-    private Boolean getBoolean(Map config, String property) {
-        return (Boolean) ((Map) config.get(property)).get("value");
     }
 
     public String getPipelineName() {
@@ -60,7 +56,7 @@ public class TaskConfig {
         return source;
     }
 
-    public Boolean getSourceIsAFile() {
+    public String getSourceIsAFile() {
         return sourceIsAFile;
     }
 
