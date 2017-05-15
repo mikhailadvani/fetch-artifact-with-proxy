@@ -16,34 +16,137 @@
 
 package cd.go.contrib.task.skeleton;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.thoughtworks.go.plugin.api.task.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.InputStreamReader;
+import java.util.*;
 
 // TODO: execute your task and setup stdout/stderr to pipe the streams to GoCD
 public class FetchArtifactWithProxyTaskExecutor {
+    private final TaskConfig taskConfig;
+    private final Context context;
+    private final JobConsoleLogger console;
+    private final Map environmentVariables;
 
-    public static final String CURLED_FILE = "index.txt";
+    public FetchArtifactWithProxyTaskExecutor(TaskConfig config, Context taskContext, JobConsoleLogger consoleLogger) {
+        taskConfig = config;
+        context = taskContext;
+        console = consoleLogger;
+        environmentVariables = this.context.getEnvironmentVariables();
+    }
 
-    public Result execute(TaskConfig taskConfig, Context context, JobConsoleLogger console) {
+    public Result execute() {
         try {
-            return runCommand(context, taskConfig, console);
+            return fetchArtifact();
         } catch (Exception e) {
-            return new Result(false, "Failed to download file from URL: " + taskConfig.getPipelineName(), e);
+            return new Result(false, "Error making HTTP GET call", e);
         }
     }
 
-    private Result runCommand(Context taskContext, TaskConfig taskTaskConfig, JobConsoleLogger console) throws IOException, InterruptedException {
-        ProcessBuilder curl = createCurlCommandWithOptions(taskContext, taskTaskConfig);
-        console.printLine("Launching command: " + curl.command());
-        curl.environment().putAll(taskContext.getEnvironmentVariables());
-        console.printEnvironment(curl.environment());
+    private Result fetchArtifact() throws IOException, InterruptedException {
+        GoStage stage = new GoStage(getEnvironmentVariable("GO_PIPELINE_NAME"),
+                                    Integer.parseInt(getEnvironmentVariable("GO_PIPELINE_COUNTER")),
+                                    getEnvironmentVariable("GO_STAGE_NAME"),
+                                    Integer.parseInt(getEnvironmentVariable("GO_STAGE_COUNTER")));
+        this.console.printLine("!!!!!!!!!!!!!!!!!!!!!" + getPipelineMaterials(stage, new ArrayList<GoStage>()).toString());
+        return new Result(true, "Made API call");
+    }
 
+    private String curl(String path, Boolean useProxy) throws IOException, InterruptedException {
+        ProcessBuilder curl = createCurlCommand(path, useProxy, Boolean.FALSE);
+        curl.environment().putAll(this.context.getEnvironmentVariables());
         Process curlProcess = curl.start();
-        console.readErrorOf(curlProcess.getErrorStream());
-        console.readOutputOf(curlProcess.getInputStream());
+        this.console.readErrorOf(curlProcess.getErrorStream());
+        BufferedReader reader = new BufferedReader(new InputStreamReader(curlProcess.getInputStream()));
+        String line;
+        String output = "";
+        while ((line = reader.readLine()) != null) {
+            output = output + line;
+        }
+        curlProcess.waitFor();
+        reader.close();
+        curlProcess.destroy();
+        return output;
+    }
+
+    private ProcessBuilder createCurlCommand(String path, Boolean useProxy, Boolean saveFile) {
+        List<String> command = new ArrayList<String>();
+        command.add("curl");
+        if (useProxy) { command.add(proxyUrl() + path); }
+        else { command.add(goServerUrl() + path); }
+        command.add("-s");
+        if (saveFile) {
+            command.add("-o");
+            String destinationFilePath = this.context.getWorkingDir() + "/" + this.taskConfig.getDestination();
+            command.add(destinationFilePath);
+        }
+        command.add("-u");
+        command.add(getEnvironmentVariable("GO_SERVER_USERNAME") + ":" + getEnvironmentVariable("GO_SERVER_PASSWORD"));
+        command.add("-k");
+        this.console.printLine(String.join(" ", command));
+
+        return new ProcessBuilder(command);
+    }
+
+    private String proxyUrl() {
+        return getEnvironmentVariable("ARTIFACT_FETCH_PROXY_HOST") + ":" + getEnvironmentVariable("ARTIFACT_FETCH_PROXY_PORT");
+    }
+
+    private String goServerUrl() {
+        return getEnvironmentVariable("GO_SERVER_URL").replace("/go","");
+    }
+
+    private String getEnvironmentVariable(String variableName) {
+        return this.environmentVariables.get(variableName).toString();
+    }
+
+    private List<GoStage> immediateUpstreamPipelines() {
+        List<GoStage> stages = new ArrayList<GoStage>();
+        Map environmentVariablesMap = this.context.getEnvironmentVariables();
+        Set<Map.Entry<String, String>> entrySet = environmentVariablesMap.entrySet();
+        for (Map.Entry<String, String> entry : entrySet) {
+            if (entry.getKey().startsWith("GO_DEPENDENCY_LOCATOR")) {
+                String[] parts = entry.getValue().split("/");
+                stages.add(new GoStage(parts[0], Integer.parseInt(parts[1]), parts[2], Integer.parseInt(parts[3])));
+            }
+        }
+        return stages;
+    }
+
+    private List<String> getPipelineMaterials(GoStage currentStage, List<GoStage> stages) throws IOException, InterruptedException {
+        List<String> pipelineMaterials = new ArrayList<String>();
+        JsonParser jsonParser = new JsonParser();
+        JsonArray material_revisions = jsonParser.parse(curl(currentStage.getPipelineUrlPath(),Boolean.FALSE)).getAsJsonObject()
+                                                                            .get("build_cause").getAsJsonObject()
+                                                                            .get("material_revisions").getAsJsonArray();
+
+        for (JsonElement material_revision : material_revisions) {
+            if (material_revision.getAsJsonObject().get("material").getAsJsonObject().get("type").getAsString().equals("Pipeline")) {
+                if (!currentStage.isIn(stages)) {
+                    pipelineMaterials.add(material_revision.getAsJsonObject().get("modifications").getAsJsonArray().get(0).getAsJsonObject().get("revision").toString());
+                }
+            }
+        }
+        return pipelineMaterials;
+    }
+
+    private Result oldFetchArtifact() throws IOException, InterruptedException {
+        ProcessBuilder curl = createCurlCommand("", Boolean.FALSE, Boolean.FALSE);
+        this.console.printLine("Launching command: " + curl.command());
+        List<GoStage> immediateUpstreamStages = immediateUpstreamPipelines();
+        for (GoStage stage : immediateUpstreamStages) {
+            this.console.printLine(stage.print());
+        }
+        this.console.printLine(immediateUpstreamPipelines().toString());
+        Process curlProcess = curl.start();
+        this.console.readErrorOf(curlProcess.getErrorStream());
+        this.console.readOutputOf(curlProcess.getInputStream());
 
         int exitCode = curlProcess.waitFor();
         curlProcess.destroy();
@@ -52,28 +155,6 @@ public class FetchArtifactWithProxyTaskExecutor {
             return new Result(false, "Failed downloading file. Please check the output");
         }
 
-        return new Result(true, "Downloaded file: " + CURLED_FILE);
-    }
-
-    ProcessBuilder createCurlCommandWithOptions(Context taskContext, TaskConfig taskTaskConfig) {
-        String destinationFilePath = taskContext.getWorkingDir() + "/" + CURLED_FILE;
-
-        List<String> command = new ArrayList<String>();
-        command.add("Fetch Artifact with Proxy");
-//        command.add(taskTaskConfig.getRequestType());
-//        if (taskTaskConfig.getSecureConnection().equals("no")) {
-//            command.add("--insecure");
-//        }
-//        if (taskTaskConfig.getAdditionalOptions() != null && !taskTaskConfig.getAdditionalOptions().trim().isEmpty()) {
-//            String parts[] = taskTaskConfig.getAdditionalOptions().split("\\s+");
-//            for (String part : parts) {
-//                command.add(part);
-//            }
-//        }
-        command.add("-o");
-        command.add(destinationFilePath);
-        command.add(taskTaskConfig.getPipelineName());
-
-        return new ProcessBuilder(command);
+        return new Result(true, "Downloaded file: " + this.taskConfig.getDestination());
     }
 }
