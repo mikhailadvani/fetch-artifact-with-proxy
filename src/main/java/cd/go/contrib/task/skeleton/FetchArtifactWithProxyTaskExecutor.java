@@ -119,7 +119,7 @@ public class FetchArtifactWithProxyTaskExecutor {
         return stages;
     }
 
-    private List<String> getPipelineMaterials(GoStage currentStage, List<GoStage> stages) throws IOException, InterruptedException {
+    private List<GoStage> getPipelineMaterials(GoStage currentStage, List<GoStage> stages) throws IOException, InterruptedException {
         List<String> pipelineMaterials = new ArrayList<String>();
         JsonParser jsonParser = new JsonParser();
         JsonArray material_revisions = jsonParser.parse(curl(currentStage.getPipelineUrlPath(),Boolean.FALSE)).getAsJsonObject()
@@ -129,11 +129,11 @@ public class FetchArtifactWithProxyTaskExecutor {
         for (JsonElement material_revision : material_revisions) {
             if (material_revision.getAsJsonObject().get("material").getAsJsonObject().get("type").getAsString().equals("Pipeline")) {
                 if (!currentStage.isIn(stages)) {
-                    pipelineMaterials.add(material_revision.getAsJsonObject().get("modifications").getAsJsonArray().get(0).getAsJsonObject().get("revision").toString());
+                    stages.add(new GoStage(material_revision.getAsJsonObject().get("modifications").getAsJsonArray().get(0).getAsJsonObject().get("revision").getAsString()));
                 }
             }
         }
-        return pipelineMaterials;
+        return stages;
     }
 
     private Result oldFetchArtifact() throws IOException, InterruptedException {
