@@ -54,8 +54,27 @@ public class FetchArtifactWithProxyTaskExecutor {
                                     Integer.parseInt(getEnvironmentVariable("GO_PIPELINE_COUNTER")),
                                     getEnvironmentVariable("GO_STAGE_NAME"),
                                     Integer.parseInt(getEnvironmentVariable("GO_STAGE_COUNTER")));
-        this.console.printLine("!!!!!!!!!!!!!!!!!!!!!" + getPipelineMaterials(stage, new ArrayList<GoStage>()).toString());
+        Set<GoStage> upstreamPipelines = deduplicatedUpstreamPipelines(getPipelineMaterials(stage, new HashSet<GoStage>()));
+
         return new Result(true, "Made API call");
+    }
+
+    private void printPipelines(Set<GoStage> pipelines) {
+        for (GoStage goStage : pipelines) {
+            this.console.printLine("?????????????" + goStage.print());
+        }
+    }
+
+    private Set<GoStage> deduplicatedUpstreamPipelines(Set<GoStage> upstreamStages) {
+        Iterator<GoStage> iterator = upstreamStages.iterator();
+        while (iterator.hasNext()) {
+            GoStage stage = iterator.next();
+            if (stage.greaterOrSameVersionAvailable(upstreamStages)) {
+                this.console.printLine(stage.print() + stage);
+                iterator.remove();
+            }
+        }
+        return upstreamStages;
     }
 
     private String curl(String path, Boolean useProxy) throws IOException, InterruptedException {
@@ -89,7 +108,6 @@ public class FetchArtifactWithProxyTaskExecutor {
         command.add("-u");
         command.add(getEnvironmentVariable("GO_SERVER_USERNAME") + ":" + getEnvironmentVariable("GO_SERVER_PASSWORD"));
         command.add("-k");
-        this.console.printLine(String.join(" ", command));
 
         return new ProcessBuilder(command);
     }
@@ -119,8 +137,7 @@ public class FetchArtifactWithProxyTaskExecutor {
         return stages;
     }
 
-    private List<GoStage> getPipelineMaterials(GoStage currentStage, List<GoStage> stages) throws IOException, InterruptedException {
-        List<String> pipelineMaterials = new ArrayList<String>();
+    private Set<GoStage> getPipelineMaterials(GoStage currentStage, Set<GoStage> stages) throws IOException, InterruptedException {
         JsonParser jsonParser = new JsonParser();
         JsonArray material_revisions = jsonParser.parse(curl(currentStage.getPipelineUrlPath(),Boolean.FALSE)).getAsJsonObject()
                                                                             .get("build_cause").getAsJsonObject()
@@ -128,8 +145,10 @@ public class FetchArtifactWithProxyTaskExecutor {
 
         for (JsonElement material_revision : material_revisions) {
             if (material_revision.getAsJsonObject().get("material").getAsJsonObject().get("type").getAsString().equals("Pipeline")) {
-                if (!currentStage.isIn(stages)) {
-                    stages.add(new GoStage(material_revision.getAsJsonObject().get("modifications").getAsJsonArray().get(0).getAsJsonObject().get("revision").getAsString()));
+                GoStage upstreamStage = new GoStage(material_revision.getAsJsonObject().get("modifications").getAsJsonArray().get(0).getAsJsonObject().get("revision").getAsString());
+                if (!upstreamStage.isIn(stages)) {
+                    stages.add(upstreamStage);
+                    stages.addAll(getPipelineMaterials(upstreamStage, stages));
                 }
             }
         }

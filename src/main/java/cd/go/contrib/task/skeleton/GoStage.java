@@ -16,7 +16,7 @@
 
 package cd.go.contrib.task.skeleton;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * Created by mikhailadvani on 5/1/17.
@@ -42,7 +42,7 @@ public class GoStage {
         stageCounter = Integer.parseInt(split_revision[3]);
     }
 
-    public Boolean isIn(List<GoStage> stages) {
+    public Boolean isIn(Set<GoStage> stages) {
         for (GoStage stage : stages ) {
             if (this.isEqual(stage)) {
                 return true;
@@ -51,9 +51,22 @@ public class GoStage {
         return false;
     }
 
+    public Boolean greaterOrSameVersionAvailable(Set<GoStage> stages) {
+        for (GoStage stage : stages) {
+            if (this.lessThanOrEqual(stage) && !this.isEqual(stage)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Boolean lessThanOrEqual(GoStage stage2) {
+        return  (this.pipelineName.equals(stage2.pipelineName) && (this.pipelineCounter <= stage2.pipelineCounter));
+    }
+
     private Boolean isEqual(GoStage stage2) {
-        return ( this.pipelineName.equals(stage2.pipelineName) ) & ( this.stageName.equals(stage2.stageName) ) &
-               ( this.pipelineCounter.equals(stage2.pipelineCounter) ) & ( this.stageCounter.equals(stage2.stageCounter) ) ;
+        return ( this.pipelineName.equals(stage2.pipelineName) ) && ( this.stageName.equals(stage2.stageName) ) &&
+               ( this.pipelineCounter.equals(stage2.pipelineCounter) ) && ( this.stageCounter.equals(stage2.stageCounter) ) ;
     }
 
     public String print() {
