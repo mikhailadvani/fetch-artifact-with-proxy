@@ -31,12 +31,7 @@
   <input type="text" ng-model="Source" ng-required="true"/>
 </div>
 
-<div class="checkbox_row">
-  <input id="SourceIsAFile" type="checkbox" ng-model="SourceIsAFile" value="no">
-  <label for="SourceIsAFile">Source is a file(Not a directory)</label>
-</div>
-
 <div class="form_item_block">
-  <label>Destination</label>
+  <label>Destination<span class="asterisk">*</span></label>
   <input type="text" ng-model="Destination" ng-required="false"/>
 </div>

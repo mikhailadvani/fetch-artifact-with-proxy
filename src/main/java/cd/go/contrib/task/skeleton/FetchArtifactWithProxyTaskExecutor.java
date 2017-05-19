@@ -18,13 +18,14 @@ package cd.go.contrib.task.skeleton;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.thoughtworks.go.plugin.api.task.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 // TODO: execute your task and setup stdout/stderr to pipe the streams to GoCD
@@ -49,20 +50,15 @@ public class FetchArtifactWithProxyTaskExecutor {
         }
     }
 
-    private Result fetchArtifact() throws IOException, InterruptedException {
+    private Result fetchArtifact() throws IOException, InterruptedException  {
         GoStage stage = new GoStage(getEnvironmentVariable("GO_PIPELINE_NAME"),
                                     Integer.parseInt(getEnvironmentVariable("GO_PIPELINE_COUNTER")),
                                     getEnvironmentVariable("GO_STAGE_NAME"),
                                     Integer.parseInt(getEnvironmentVariable("GO_STAGE_COUNTER")));
-        Set<GoStage> upstreamPipelines = deduplicatedUpstreamPipelines(getPipelineMaterials(stage, new HashSet<GoStage>()));
-
+        String fetchUrl = artifactDownloadUrl(stage);
+        this.console.printLine("Downloading artifact from: " + fetchUrl);
+        curl(fetchUrl, true, true);
         return new Result(true, "Made API call");
-    }
-
-    private void printPipelines(Set<GoStage> pipelines) {
-        for (GoStage goStage : pipelines) {
-            this.console.printLine("?????????????" + goStage.print());
-        }
     }
 
     private Set<GoStage> deduplicatedUpstreamPipelines(Set<GoStage> upstreamStages) {
@@ -70,15 +66,15 @@ public class FetchArtifactWithProxyTaskExecutor {
         while (iterator.hasNext()) {
             GoStage stage = iterator.next();
             if (stage.greaterOrSameVersionAvailable(upstreamStages)) {
-                this.console.printLine(stage.print() + stage);
+                this.console.printLine(stage.pipelineUrl() + stage);
                 iterator.remove();
             }
         }
         return upstreamStages;
     }
 
-    private String curl(String path, Boolean useProxy) throws IOException, InterruptedException {
-        ProcessBuilder curl = createCurlCommand(path, useProxy, Boolean.FALSE);
+    private String curl(String path, Boolean useProxy, Boolean saveFile) throws IOException, InterruptedException {
+        ProcessBuilder curl = createCurlCommand(path, useProxy, saveFile);
         curl.environment().putAll(this.context.getEnvironmentVariables());
         Process curlProcess = curl.start();
         this.console.readErrorOf(curlProcess.getErrorStream());
@@ -94,7 +90,7 @@ public class FetchArtifactWithProxyTaskExecutor {
         return output;
     }
 
-    private ProcessBuilder createCurlCommand(String path, Boolean useProxy, Boolean saveFile) {
+    private ProcessBuilder createCurlCommand(String path, Boolean useProxy, Boolean saveFile) throws IOException {
         List<String> command = new ArrayList<String>();
         command.add("curl");
         if (useProxy) { command.add(proxyUrl() + path); }
@@ -112,8 +108,14 @@ public class FetchArtifactWithProxyTaskExecutor {
         return new ProcessBuilder(command);
     }
 
-    private String proxyUrl() {
-        return getEnvironmentVariable("ARTIFACT_FETCH_PROXY_HOST") + ":" + getEnvironmentVariable("ARTIFACT_FETCH_PROXY_PORT");
+    private String proxyUrl() throws IOException {
+        HashMap<String, String> proxyFileConfigs = new HashMap<>();
+        String[] lines = new String(Files.readAllBytes(Paths.get("/etc/go/artifact_proxy.conf"))).split("\n");
+        for (String line : lines) {
+            String[] keyValue = line.split("=");
+            proxyFileConfigs.put(keyValue[0].trim(), keyValue[1].trim());
+        }
+        return proxyFileConfigs.get("ARTIFACT_FETCH_PROXY_HOST") + ":" + proxyFileConfigs.get("ARTIFACT_FETCH_PROXY_PORT");
     }
 
     private String goServerUrl() {
@@ -124,22 +126,9 @@ public class FetchArtifactWithProxyTaskExecutor {
         return this.environmentVariables.get(variableName).toString();
     }
 
-    private List<GoStage> immediateUpstreamPipelines() {
-        List<GoStage> stages = new ArrayList<GoStage>();
-        Map environmentVariablesMap = this.context.getEnvironmentVariables();
-        Set<Map.Entry<String, String>> entrySet = environmentVariablesMap.entrySet();
-        for (Map.Entry<String, String> entry : entrySet) {
-            if (entry.getKey().startsWith("GO_DEPENDENCY_LOCATOR")) {
-                String[] parts = entry.getValue().split("/");
-                stages.add(new GoStage(parts[0], Integer.parseInt(parts[1]), parts[2], Integer.parseInt(parts[3])));
-            }
-        }
-        return stages;
-    }
-
     private Set<GoStage> getPipelineMaterials(GoStage currentStage, Set<GoStage> stages) throws IOException, InterruptedException {
         JsonParser jsonParser = new JsonParser();
-        JsonArray material_revisions = jsonParser.parse(curl(currentStage.getPipelineUrlPath(),Boolean.FALSE)).getAsJsonObject()
+        JsonArray material_revisions = jsonParser.parse(curl(currentStage.getPipelineUrlPath(),false, false)).getAsJsonObject()
                                                                             .get("build_cause").getAsJsonObject()
                                                                             .get("material_revisions").getAsJsonArray();
 
@@ -155,25 +144,9 @@ public class FetchArtifactWithProxyTaskExecutor {
         return stages;
     }
 
-    private Result oldFetchArtifact() throws IOException, InterruptedException {
-        ProcessBuilder curl = createCurlCommand("", Boolean.FALSE, Boolean.FALSE);
-        this.console.printLine("Launching command: " + curl.command());
-        List<GoStage> immediateUpstreamStages = immediateUpstreamPipelines();
-        for (GoStage stage : immediateUpstreamStages) {
-            this.console.printLine(stage.print());
-        }
-        this.console.printLine(immediateUpstreamPipelines().toString());
-        Process curlProcess = curl.start();
-        this.console.readErrorOf(curlProcess.getErrorStream());
-        this.console.readOutputOf(curlProcess.getInputStream());
-
-        int exitCode = curlProcess.waitFor();
-        curlProcess.destroy();
-
-        if (exitCode != 0) {
-            return new Result(false, "Failed downloading file. Please check the output");
-        }
-
-        return new Result(true, "Downloaded file: " + this.taskConfig.getDestination());
+    private String artifactDownloadUrl(GoStage stage) throws IOException, InterruptedException {
+        Set<GoStage> upstreamStages = deduplicatedUpstreamPipelines(getPipelineMaterials(stage, new HashSet<GoStage>()));
+        GoStage targetStage = new GoStage(this.taskConfig.getPipelineName(), this.taskConfig.getStageName(), upstreamStages);
+        return "/go/files/" + targetStage.pipelineUrl() + "/" + this.taskConfig.getJobName() + "/" + this.taskConfig.getSource();
     }
 }

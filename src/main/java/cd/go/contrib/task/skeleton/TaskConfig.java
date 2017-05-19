@@ -24,7 +24,6 @@ public class TaskConfig {
     private final String stageName;
     private final String jobName;
     private final String source;
-    private final String sourceIsAFile;
     private final String destination;
 
     public TaskConfig(Map config) {
@@ -32,7 +31,6 @@ public class TaskConfig {
         stageName = getValue(config, TaskPlugin.STAGE_NAME);
         jobName = getValue(config, TaskPlugin.JOB_NAME);
         source = getValue(config, TaskPlugin.SOURCE);
-        sourceIsAFile = getValue(config, TaskPlugin.SOURCE_IS_A_FILE);
         destination = getValue(config, TaskPlugin.DESTINATION);
     }
 
@@ -54,10 +52,6 @@ public class TaskConfig {
 
     public String getSource() {
         return source;
-    }
-
-    public String getSourceIsAFile() {
-        return sourceIsAFile;
     }
 
     public String getDestination() {

@@ -34,6 +34,21 @@ public class GoStage {
         stageCounter = sc;
     }
 
+    public GoStage(String pipeline, String stage, Set<GoStage> stages) {
+        pipelineName = pipeline;
+        stageName = stage;
+        Integer pc = 0;
+        Integer sc = 0;
+        for (GoStage s : stages ) {
+            if (this.pipelineStageSame(s)) {
+                pc = s.getPipelineCounter();
+                sc = s.getStageCounter();
+            }
+        }
+        pipelineCounter = pc;
+        stageCounter = sc;
+    }
+
     public GoStage(String revision) {
         String [] split_revision = revision.split("/");
         pipelineName = split_revision[0];
@@ -60,6 +75,9 @@ public class GoStage {
         return false;
     }
 
+    private Boolean pipelineStageSame(GoStage stage2) {
+        return (this.pipelineName.equals(stage2.getPipelineName()) && this.stageName.equals(stage2.getStageName()));
+    }
     private Boolean lessThanOrEqual(GoStage stage2) {
         return  (this.pipelineName.equals(stage2.pipelineName) && (this.pipelineCounter <= stage2.pipelineCounter));
     }
@@ -69,7 +87,7 @@ public class GoStage {
                ( this.pipelineCounter.equals(stage2.pipelineCounter) ) && ( this.stageCounter.equals(stage2.stageCounter) ) ;
     }
 
-    public String print() {
+    public String pipelineUrl() {
         return this.pipelineName + "/" + this.pipelineCounter.toString() + "/" + this.stageName + "/" + this.stageCounter.toString();
     }
 
@@ -80,6 +98,10 @@ public class GoStage {
     public Integer getPipelineCounter() {
         return pipelineCounter;
     }
+
+    public String getStageName() { return stageName; }
+
+    public Integer getStageCounter() { return stageCounter; }
 
     public String getPipelineUrlPath() {
         return "/go/api" + "/pipelines/" + this.getPipelineName() + "/instance/" + this.getPipelineCounter().toString();
