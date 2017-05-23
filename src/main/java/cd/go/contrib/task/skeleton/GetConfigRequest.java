@@ -51,12 +51,6 @@ public class GetConfigRequest {
         source.put("required", true);
         config.put(TaskPlugin.SOURCE, source);
 
-        HashMap<String, Object> sourceIsAFile = new HashMap<>();
-        sourceIsAFile.put("display-order", "4");
-        sourceIsAFile.put("display-name", "SourceIsAFile");
-        sourceIsAFile.put("required", true);
-        config.put(TaskPlugin.SOURCE_IS_A_FILE, sourceIsAFile);
-
         HashMap<String, Object> destination = new HashMap<>();
         destination.put("display-order", "5");
         destination.put("display-name", "Destination");

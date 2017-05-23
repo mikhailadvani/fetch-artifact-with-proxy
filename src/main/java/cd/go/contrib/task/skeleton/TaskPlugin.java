@@ -36,7 +36,6 @@ public class TaskPlugin implements GoPlugin {
     public static final String STAGE_NAME = "Stage";
     public static final String JOB_NAME = "Job";
     public static final String SOURCE = "Source";
-    public static final String SOURCE_IS_A_FILE = "SourceIsAFile";
     public static final String DESTINATION = "Destination";
     public static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
