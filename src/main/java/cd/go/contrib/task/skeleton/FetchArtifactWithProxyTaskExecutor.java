@@ -34,6 +34,8 @@ public class FetchArtifactWithProxyTaskExecutor {
     private final Context context;
     private final JobConsoleLogger console;
     private final Map environmentVariables;
+    private Boolean success = true;
+    private String message = "Downloaded artifact";
 
     public FetchArtifactWithProxyTaskExecutor(TaskConfig config, Context taskContext, JobConsoleLogger consoleLogger) {
         taskConfig = config;
@@ -58,7 +60,7 @@ public class FetchArtifactWithProxyTaskExecutor {
         String fetchUrl = artifactDownloadUrl(stage);
         this.console.printLine("Downloading artifact from: " + fetchUrl);
         curl(fetchUrl, true, true);
-        return new Result(true, "Made API call");
+        return new Result(this.success, this.message);
     }
 
     private Set<GoStage> deduplicatedUpstreamPipelines(Set<GoStage> upstreamStages) {
@@ -147,6 +149,10 @@ public class FetchArtifactWithProxyTaskExecutor {
     private String artifactDownloadUrl(GoStage stage) throws IOException, InterruptedException {
         Set<GoStage> upstreamStages = deduplicatedUpstreamPipelines(getPipelineMaterials(stage, new HashSet<GoStage>()));
         GoStage targetStage = new GoStage(this.taskConfig.getPipelineName(), this.taskConfig.getStageName(), upstreamStages);
+        if (targetStage.invalid()) {
+            this.success = false;
+            this.message = "Fetch artifact pipeline/stage not in upstream";
+        }
         return "/go/files/" + targetStage.pipelineUrl() + "/" + this.taskConfig.getJobName() + "/" + this.taskConfig.getSource();
     }
 }

@@ -75,6 +75,9 @@ public class GoStage {
         return false;
     }
 
+    public Boolean invalid() {
+        return (this.pipelineCounter.equals(0) || this.stageCounter.equals(0));
+    }
     private Boolean pipelineStageSame(GoStage stage2) {
         return (this.pipelineName.equals(stage2.getPipelineName()) && this.stageName.equals(stage2.getStageName()));
     }
