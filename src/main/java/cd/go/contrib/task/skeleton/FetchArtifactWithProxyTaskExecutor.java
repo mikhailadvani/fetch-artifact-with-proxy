@@ -22,6 +22,7 @@ import com.google.gson.JsonParser;
 import com.thoughtworks.go.plugin.api.task.*;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -30,6 +31,7 @@ import java.util.*;
 
 // TODO: execute your task and setup stdout/stderr to pipe the streams to GoCD
 public class FetchArtifactWithProxyTaskExecutor {
+    public static final String proxy_conf_file = "/etc/go/artifact_proxy.conf";
     private final TaskConfig taskConfig;
     private final Context context;
     private final JobConsoleLogger console;
@@ -111,8 +113,12 @@ public class FetchArtifactWithProxyTaskExecutor {
     }
 
     private String proxyUrl() throws IOException {
+        if( ! (new File(proxy_conf_file).isFile()) ) {
+            TaskPlugin.LOGGER.info("Proxy config file " + proxy_conf_file + "not found. Continuing without proxy");
+            return goServerUrl();
+        }
         HashMap<String, String> proxyFileConfigs = new HashMap<>();
-        String[] lines = new String(Files.readAllBytes(Paths.get("/etc/go/artifact_proxy.conf"))).split("\n");
+        String[] lines = new String(Files.readAllBytes(Paths.get(proxy_conf_file))).split("\n");
         for (String line : lines) {
             String[] keyValue = line.split("=");
             proxyFileConfigs.put(keyValue[0].trim(), keyValue[1].trim());
