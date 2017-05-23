@@ -130,7 +130,7 @@ jar {
   }
 }
 
-task pub1(dependsOn: build, type: Copy){
+task publishToGoServerPluginsDir(dependsOn: build, type: Copy){
   from('build/libs/')
   into('/var/lib/go-server/plugins/external/')
   include('*.jar')
