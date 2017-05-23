@@ -5,13 +5,15 @@ This is a plugin to support a proxy for fetch artifact between Go Agent and Go S
 ## Setup
 
 - Host a proxy server in the network of the GoAgent(s).
-- Configure it to forward all inbound requests to be forwarded to the GoServer
-- On each GoAgent, create a file `/etc/go/artifact_proxy.conf`. The contents of this file should be:
+- Configure it to forward all inbound requests to be forwarded to the GoServer(Ideally point to the HTTPS URL). 
+- On each GoAgent, which needs to Go via proxy, create a file `/etc/go/artifact_proxy.conf`. The contents of this file should be:
     ```
     ARTIFACT_FETCH_PROXY_HOST=<PROXY_SERVER_HOST_WITH_PROTOCOL>
     ARTIFACT_FETCH_PROXY_PORT=<PROXY_SERVER_PORT>
     ```
-- Use the 
+- If the file does not exist, the plugin will silently call the Go server directly.    
+- Use the `Fetch Artifact with Proxy` task instead of Fetch Artifact.
+- **Note:** Validation of the task creation is still incomplete.
 
 
 ## Building the code base
