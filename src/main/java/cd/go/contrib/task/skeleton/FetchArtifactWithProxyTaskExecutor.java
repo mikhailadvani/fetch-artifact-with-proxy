@@ -25,6 +25,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -105,6 +107,7 @@ public class FetchArtifactWithProxyTaskExecutor {
             String destinationFilePath = this.context.getWorkingDir() + "/" + this.taskConfig.getDestination();
             command.add(destinationFilePath);
         }
+        this.console.printLine("Going to make HTTP call to: " + String.join(" ", command));
         command.add("-u");
         command.add(getEnvironmentVariable("GO_SERVER_USERNAME") + ":" + getEnvironmentVariable("GO_SERVER_PASSWORD"));
         command.add("-k");
@@ -114,7 +117,7 @@ public class FetchArtifactWithProxyTaskExecutor {
 
     private String proxyUrl() throws IOException {
         if( ! (new File(proxy_conf_file).isFile()) ) {
-            TaskPlugin.LOGGER.info("Proxy config file " + proxy_conf_file + "not found. Continuing without proxy");
+            this.console.printLine("Proxy config file " + proxy_conf_file + "not found. Continuing without proxy");
             return goServerUrl();
         }
         HashMap<String, String> proxyFileConfigs = new HashMap<>();
@@ -127,7 +130,24 @@ public class FetchArtifactWithProxyTaskExecutor {
     }
 
     private String goServerUrl() {
-        return getEnvironmentVariable("GO_SERVER_URL").replace("/go","");
+        StringBuilder urlBuilder = new StringBuilder();
+        String goServerUrl = getEnvironmentVariable("GO_SERVER_URL");
+        try {
+            URL url = new URL(goServerUrl);
+            urlBuilder.append(url.getProtocol());
+            urlBuilder.append("://" + url.getHost());
+            int port = url.getPort();
+            if (port != -1) {
+                urlBuilder.append(":" + port);
+            }
+            else {
+                urlBuilder.append(":" + url.getDefaultPort());
+            }
+            return urlBuilder.toString();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        return goServerUrl.replace("/go","");
     }
 
     private String getEnvironmentVariable(String variableName) {
@@ -152,8 +172,15 @@ public class FetchArtifactWithProxyTaskExecutor {
         return stages;
     }
 
+    private void printStages(Set<GoStage> stages) {
+        for (GoStage stage : stages) {
+            this.console.printLine(stage.pipelineUrl());
+        }
+    }
+
     private String artifactDownloadUrl(GoStage stage) throws IOException, InterruptedException {
         Set<GoStage> upstreamStages = deduplicatedUpstreamPipelines(getPipelineMaterials(stage, new HashSet<GoStage>()));
+        printStages(upstreamStages);
         GoStage targetStage = new GoStage(this.taskConfig.getPipelineName(), this.taskConfig.getStageName(), upstreamStages);
         if (targetStage.invalid()) {
             this.success = false;
