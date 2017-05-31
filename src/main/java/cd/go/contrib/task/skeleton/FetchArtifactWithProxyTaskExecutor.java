@@ -69,13 +69,15 @@ public class FetchArtifactWithProxyTaskExecutor {
 
     private Set<GoStage> deduplicatedUpstreamPipelines(Set<GoStage> upstreamStages) {
         Iterator<GoStage> iterator = upstreamStages.iterator();
+        this.console.printLine("!!!!Removing duplicate pipelines:!!!!");
         while (iterator.hasNext()) {
             GoStage stage = iterator.next();
             if (stage.greaterOrSameVersionAvailable(upstreamStages)) {
-                this.console.printLine(stage.pipelineUrl() + stage);
+                this.console.printLine(stage.pipelineUrl());
                 iterator.remove();
             }
         }
+        this.console.printLine("!!!!!Removed duplicate pipelines!!!!!");
         return upstreamStages;
     }
 
@@ -165,11 +167,28 @@ public class FetchArtifactWithProxyTaskExecutor {
                 GoStage upstreamStage = new GoStage(material_revision.getAsJsonObject().get("modifications").getAsJsonArray().get(0).getAsJsonObject().get("revision").getAsString());
                 if (!upstreamStage.isIn(stages)) {
                     stages.add(upstreamStage);
+                    stages.addAll(previousStagesInSamePipeline(upstreamStage));
                     stages.addAll(getPipelineMaterials(upstreamStage, stages));
                 }
             }
         }
         return stages;
+    }
+
+    private Set<GoStage> previousStagesInSamePipeline(GoStage stage) throws IOException, InterruptedException {
+        Set<GoStage> previousStages = new HashSet<GoStage>();
+        JsonParser jsonParser = new JsonParser();
+        JsonArray previousStagesJson = jsonParser.parse(curl(stage.getPipelineUrlPath(),false, false)).getAsJsonObject().get("stages").getAsJsonArray();
+        for (JsonElement previous_stage_json : previousStagesJson) {
+            GoStage previousStage = new GoStage(stage.getPipelineName(), stage.getPipelineCounter(), previous_stage_json.getAsJsonObject().get("name").getAsString(), Integer.parseInt(previous_stage_json.getAsJsonObject().get("counter").getAsString()));
+            if (previousStage.isEqual(stage)) {
+                return previousStages;
+            }
+            else {
+                previousStages.add(previousStage);
+            }
+        }
+        return previousStages;
     }
 
     private void printStages(Set<GoStage> stages) {

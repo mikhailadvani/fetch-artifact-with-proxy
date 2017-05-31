@@ -82,10 +82,10 @@ public class GoStage {
         return (this.pipelineName.equals(stage2.getPipelineName()) && this.stageName.equals(stage2.getStageName()));
     }
     private Boolean lessThanOrEqual(GoStage stage2) {
-        return  (this.pipelineName.equals(stage2.pipelineName) && (this.pipelineCounter <= stage2.pipelineCounter));
+        return  (this.pipelineName.equals(stage2.pipelineName) && (this.pipelineCounter <= stage2.pipelineCounter) && this.stageName.equals(stage2.stageName));
     }
 
-    private Boolean isEqual(GoStage stage2) {
+    public Boolean isEqual(GoStage stage2) {
         return ( this.pipelineName.equals(stage2.pipelineName) ) && ( this.stageName.equals(stage2.stageName) ) &&
                ( this.pipelineCounter.equals(stage2.pipelineCounter) ) && ( this.stageCounter.equals(stage2.stageCounter) ) ;
     }
