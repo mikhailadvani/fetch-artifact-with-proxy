@@ -199,7 +199,9 @@ public class FetchArtifactWithProxyTaskExecutor {
 
     private String artifactDownloadUrl(GoStage stage) throws IOException, InterruptedException {
         Set<GoStage> upstreamStages = deduplicatedUpstreamPipelines(getPipelineMaterials(stage, new HashSet<GoStage>()));
+        this.console.printLine("*******All upstream stages*******");
         printStages(upstreamStages);
+        this.console.printLine("*******All upstream stages*******");
         GoStage targetStage = new GoStage(this.taskConfig.getPipelineName(), this.taskConfig.getStageName(), upstreamStages);
         if (targetStage.invalid()) {
             this.success = false;
