@@ -36,19 +36,19 @@ public class GetConfigRequest {
         HashMap<String, Object> stage = new HashMap<>();
         stage.put("display-order", "1");
         stage.put("display-name", "Stage");
-        stage.put("required", true);
+        stage.put("required", false);
         config.put(TaskPlugin.STAGE_NAME, stage);
 
         HashMap<String, Object> job = new HashMap<>();
         job.put("display-order", "2");
         job.put("display-name", "Job");
-        job.put("required", true);
+        job.put("required", false);
         config.put(TaskPlugin.JOB_NAME, job);
 
         HashMap<String, Object> source = new HashMap<>();
         source.put("display-order", "3");
         source.put("display-name", "Source");
-        source.put("required", true);
+        source.put("required", false);
         config.put(TaskPlugin.SOURCE, source);
 
         HashMap<String, Object> destination = new HashMap<>();

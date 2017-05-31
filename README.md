@@ -13,7 +13,6 @@ This is a plugin to support a proxy for fetch artifact between Go Agent and Go S
     ```
 - If the file does not exist, the plugin will silently call the Go server directly.    
 - Use the `Fetch Artifact with Proxy` task instead of Fetch Artifact.
-- **Note:** Validation of the task creation is still incomplete.
 
 
 ## Building the code base
