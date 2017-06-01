@@ -228,7 +228,9 @@ public class FetchArtifactWithProxyTaskExecutor {
     }
 
     private String artifactDownloadUrl(GoStage stage) throws IOException, InterruptedException {
-        Set<GoStage> upstreamStages = deduplicatedUpstreamPipelines(getPipelineMaterials(stage, new HashSet<GoStage>()));
+        Set<GoStage> upstreamStages = new HashSet<GoStage>();
+        upstreamStages.addAll(previousStagesInSamePipeline(stage));
+        upstreamStages.addAll(deduplicatedUpstreamPipelines(getPipelineMaterials(stage, upstreamStages)));
         this.console.printLine("*******All upstream stages*******");
         printStages(upstreamStages);
         this.console.printLine("*******All upstream stages*******");
