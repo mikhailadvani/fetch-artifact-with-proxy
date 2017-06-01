@@ -34,6 +34,7 @@ import java.util.*;
 // TODO: execute your task and setup stdout/stderr to pipe the streams to GoCD
 public class FetchArtifactWithProxyTaskExecutor {
     public static final String proxy_conf_file = "/etc/go/artifact_proxy.conf";
+    private static final String tmpHeadersStoreFilename = "headers.txt";
     private final TaskConfig taskConfig;
     private final Context context;
     private final JobConsoleLogger console;
@@ -63,10 +64,34 @@ public class FetchArtifactWithProxyTaskExecutor {
                                     Integer.parseInt(getEnvironmentVariable("GO_STAGE_COUNTER")));
         String fetchUrl = artifactDownloadUrl(stage);
         this.console.printLine("Downloading artifact from: " + fetchUrl);
-        curl(fetchUrl, true, true);
+        curl(fetchUrl, true, true, true);
+        printCacheInformation();
         return new Result(this.success, this.message);
     }
 
+    private void printCacheInformation() throws IOException {
+        if( (new File(proxy_conf_file).isFile()) ) {
+            HashMap<String, String> proxyFileConfigs = new HashMap<>();
+            String[] configFileLines = new String(Files.readAllBytes(Paths.get(proxy_conf_file))).split("\n");
+            for (String configFileLine : configFileLines) {
+                String[] keyValue = configFileLine.split("=");
+                proxyFileConfigs.put(keyValue[0].trim(), keyValue[1].trim());
+            }
+            String cacheHeader = proxyFileConfigs.get("CACHE_HEADER");
+            String tmpHeadersStoreFileLocation = this.context.getWorkingDir() + "/" + tmpHeadersStoreFilename;
+            if ( (new File(tmpHeadersStoreFileLocation).isFile())) {
+                HashMap<String, String> responseHeaders = new HashMap<>();
+                String[] responseHeadersFileLines = new String(Files.readAllBytes(Paths.get(tmpHeadersStoreFileLocation))).split("\n");
+                for (String responseHeaderFileLine : responseHeadersFileLines) {
+                    String[] keyValue = responseHeaderFileLine.split(":");
+                    if (keyValue.length == 2) {
+                        responseHeaders.put(keyValue[0].trim(), keyValue[1].trim());
+                    }
+                }
+                this.console.printLine("Cache status:" + responseHeaders.get(cacheHeader));
+            }
+        }
+    }
     private Set<GoStage> deduplicatedUpstreamPipelines(Set<GoStage> upstreamStages) {
         Iterator<GoStage> iterator = upstreamStages.iterator();
         this.console.printLine("!!!!Removing duplicate pipelines:!!!!");
@@ -81,8 +106,8 @@ public class FetchArtifactWithProxyTaskExecutor {
         return upstreamStages;
     }
 
-    private String curl(String path, Boolean useProxy, Boolean saveFile) throws IOException, InterruptedException {
-        ProcessBuilder curl = createCurlCommand(path, useProxy, saveFile);
+    private String curl(String path, Boolean useProxy, Boolean saveFile, Boolean saveHeaders) throws IOException, InterruptedException {
+        ProcessBuilder curl = createCurlCommand(path, useProxy, saveFile, saveHeaders);
         curl.environment().putAll(this.context.getEnvironmentVariables());
         Process curlProcess = curl.start();
         this.console.readErrorOf(curlProcess.getErrorStream());
@@ -98,7 +123,7 @@ public class FetchArtifactWithProxyTaskExecutor {
         return output;
     }
 
-    private ProcessBuilder createCurlCommand(String path, Boolean useProxy, Boolean saveFile) throws IOException {
+    private ProcessBuilder createCurlCommand(String path, Boolean useProxy, Boolean saveFile, Boolean saveHeaders) throws IOException {
         List<String> command = new ArrayList<String>();
         command.add("curl");
         if (useProxy) { command.add(proxyUrl() + path); }
@@ -108,6 +133,11 @@ public class FetchArtifactWithProxyTaskExecutor {
             command.add("-o");
             String destinationFilePath = this.context.getWorkingDir() + "/" + this.taskConfig.getDestination();
             command.add(destinationFilePath);
+        }
+        if (saveHeaders) {
+            command.add("-D");
+            String tmpHeadersStoreLocation = this.context.getWorkingDir() + "/" + tmpHeadersStoreFilename;
+            command.add(tmpHeadersStoreLocation);
         }
         this.console.printLine("Going to make HTTP call to: " + String.join(" ", command));
         command.add("-u");
@@ -158,7 +188,7 @@ public class FetchArtifactWithProxyTaskExecutor {
 
     private Set<GoStage> getPipelineMaterials(GoStage currentStage, Set<GoStage> stages) throws IOException, InterruptedException {
         JsonParser jsonParser = new JsonParser();
-        JsonArray material_revisions = jsonParser.parse(curl(currentStage.getPipelineUrlPath(),false, false)).getAsJsonObject()
+        JsonArray material_revisions = jsonParser.parse(curl(currentStage.getPipelineUrlPath(),false, false, false)).getAsJsonObject()
                                                                             .get("build_cause").getAsJsonObject()
                                                                             .get("material_revisions").getAsJsonArray();
 
@@ -178,7 +208,7 @@ public class FetchArtifactWithProxyTaskExecutor {
     private Set<GoStage> previousStagesInSamePipeline(GoStage stage) throws IOException, InterruptedException {
         Set<GoStage> previousStages = new HashSet<GoStage>();
         JsonParser jsonParser = new JsonParser();
-        JsonArray previousStagesJson = jsonParser.parse(curl(stage.getPipelineUrlPath(),false, false)).getAsJsonObject().get("stages").getAsJsonArray();
+        JsonArray previousStagesJson = jsonParser.parse(curl(stage.getPipelineUrlPath(),false, false, false)).getAsJsonObject().get("stages").getAsJsonArray();
         for (JsonElement previous_stage_json : previousStagesJson) {
             GoStage previousStage = new GoStage(stage.getPipelineName(), stage.getPipelineCounter(), previous_stage_json.getAsJsonObject().get("name").getAsString(), Integer.parseInt(previous_stage_json.getAsJsonObject().get("counter").getAsString()));
             if (previousStage.isEqual(stage)) {

@@ -10,6 +10,7 @@ This is a plugin to support a proxy for fetch artifact between Go Agent and Go S
     ```
     ARTIFACT_FETCH_PROXY_HOST=<PROXY_SERVER_HOST_WITH_PROTOCOL>
     ARTIFACT_FETCH_PROXY_PORT=<PROXY_SERVER_PORT>
+    CACHE_HEADER=<CACHE_HEADER_NAME_RETURNED_BY_THE_CACHING_PROXY>
     ```
 - If the file does not exist, the plugin will silently call the Go server directly.    
 - Use the `Fetch Artifact with Proxy` task instead of Fetch Artifact.
